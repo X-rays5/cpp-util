@@ -3,11 +3,11 @@
 #include <rapidjson/writer.h>
 
 std::string stringify(rapidjson::Document& json) {
-	rapidjson::StringBuffer strbuf;
-	strbuf.Clear();
+    rapidjson::StringBuffer strbuf;
+    strbuf.Clear();
 
-	rapidjson::Writer<rapidjson::StringBuffer> writer(strbuf);
-	json.Accept(writer);
+    rapidjson::Writer<rapidjson::StringBuffer> writer(strbuf);
+    json.Accept(writer);
 
-	return strbuf.GetString();
+    return strbuf.GetString();
 }
