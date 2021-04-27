@@ -7,8 +7,8 @@ void on_message(client *c, websocketpp::connection_hdl hdl, const message_ptr& m
         std::string body = msg->get_payload();
         std::cout << "received message: " << body << std::endl;
     } catch(websocketpp::exception &e) {
-		std::cout << e.what() << "\n";
-	}
+        std::cout << e.what() << "\n";
+    }
 }
 
 static context_ptr on_tls_init() {
@@ -65,6 +65,6 @@ void setupwebosocket() {
 
 int main() {
     setupwebosocket();
-	
+
     return 0;
 }
