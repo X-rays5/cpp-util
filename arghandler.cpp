@@ -19,7 +19,7 @@ public:
         std::string lastarg;
         for (int i = 0; i < argc; i++) {
             std::string arg(argv[i]);
-            if (arg.find(ArgPrefix_) != std::string::npos) {
+            if (arg.substr(0, ArgPrefix_.size()) == ArgPrefix_) {
                 lastarg = arg;
                 ErasePrefix(arg);
                 if (HandleHelp_ && arg == "h") {
