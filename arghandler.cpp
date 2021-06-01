@@ -4,7 +4,7 @@
 class argshandler {
 public:
     argshandler(std::string argprefix, bool handlehelp) {
-        ArgPrefix_ = argprefix;
+        ArgPrefix_ = std::move(argprefix);
         HandleHelp_ = handlehelp;
         if (HandleHelp_)
             AddKnownArg("h", "Shows this help");
@@ -12,7 +12,7 @@ public:
 
     // this is for auto help handling
     void AddKnownArg(std::string name, std::string description) {
-        KnownArgs_[name] = description;
+        KnownArgs_[name] = std::move(description);
     }
 
     void HandleArgs(int argc, char* argv[]) {
