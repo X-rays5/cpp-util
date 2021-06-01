@@ -17,7 +17,7 @@ namespace event {
 
         using event_handler_t = std::function<void(std::string, std::string)>;
         void AddEventHandler(std::string eventname, event_handler_t handler) {
-            events_[eventname] = handler;
+            events_[eventname] = std::move(handler);
         }
     private:
         std::map<std::string, event_handler_t> events_;
