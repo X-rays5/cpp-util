@@ -1,6 +1,4 @@
-#include <iostream>
 #include <string>
-
 class CCreditCardValidator {
 public:
     explicit CCreditCardValidator(uint64_t card_num) : number_(card_num)
