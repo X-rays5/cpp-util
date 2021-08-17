@@ -1,3 +1,9 @@
+#include <fstream>
+#include <iostream>
+#include <filesystem>
+#include <rapidjson/document.h>
+#include <rapidjson/istreamwrapper.h>
+
 void SaveFile(rapidjson::Document& json, const std::string& filename) {
         std::ofstream writer(filename);
         if (writer.is_open()) {
