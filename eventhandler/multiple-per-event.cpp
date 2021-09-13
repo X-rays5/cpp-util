@@ -1,5 +1,5 @@
 #include <functional>
-#include <map>
+#include <unordered_map>
 #include <iostream>
 
 namespace event {
@@ -26,6 +26,6 @@ namespace event {
             events_.insert(std::pair<std::string, event_handler_t>(std::move(eventname), std::move(handler)));
         }
     private:
-        std::multimap<std::string, event_handler_t> events_;
+        std::unordered_multimap<std::string, event_handler_t> events_;
     };
 }
