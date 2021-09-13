@@ -1,5 +1,5 @@
 #include <functional>
-#include <map>
+#include <unordered_map>
 #include <iostream>
 
 namespace event {
@@ -20,6 +20,6 @@ namespace event {
             events_[eventname] = std::move(handler);
         }
     private:
-        std::map<std::string, event_handler_t> events_;
+        std::unordered_map<std::string, event_handler_t> events_;
     };
 }
