@@ -46,6 +46,11 @@ public:
 		return data_.size_;
 	}
 
+	void Resize(size_t new_size) {
+		data_.data_ = realloc(data_.data_, new_size * sizeof(T));
+		data_.size_ = new_size;
+	}
+
 	T& operator[](const size_t index) const {
 		if (index < data_.size_) {
 			return *reinterpret_cast<T*>(reinterpret_cast<void*>((static_cast<char*>(data_.data_) + (index * sizeof(T)))));
