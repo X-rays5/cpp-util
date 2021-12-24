@@ -4,8 +4,8 @@
 
 #pragma once
 
-#ifndef STRING_SWITCH_JOAAT_HPP
-#define STRING_SWITCH_JOAAT_HPP
+#ifndef JOAAT_HPP
+#define JOAAT_HPP
 namespace joaat {
   inline constexpr char ToLower(char c) {
     return (c >= 'A' && c <= 'Z') ? c + ('a' - 'A') : c;
@@ -27,4 +27,4 @@ namespace joaat {
 
 #define STR_SWITCH(str) ::joaat::Hash(str)
 #define JOAAT_CONSTEXPR(str) constexpr auto res = ::joaat::Hash(str); res
-#endif //STRING_SWITCH_JOAAT_HPP
+#endif //JOAAT_HPP
