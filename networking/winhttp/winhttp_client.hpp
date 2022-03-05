@@ -55,7 +55,7 @@ namespace winhttp {
 
   class client {
   public:
-    [[nodiscard]] static Req Request(Req req, bool https = true) {
+    [[nodiscard]] static Req Request(Req req) {
       if (!IsHttp(req.url))
         throw std::runtime_error("Invalid URL");
       std::cout << "Requesting: " << req.url << std::endl;
