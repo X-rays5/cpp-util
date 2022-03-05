@@ -12,7 +12,7 @@
 #include <utility>
 #include <sstream>
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include <Windows.h>
 #include <winhttp.h>
 
 #pragma comment(lib, "winhttp.lib")
@@ -45,17 +45,19 @@ namespace winhttp {
   class client {
   public:
     [[nodiscard]] static Req Request(Req req, bool https = true) {
-      req.url =  CleanUrl(req.url);
+      auto url = SplitUrl(req.url);
+      std::string hostname = url.front;
+      std::string path = url.back;
 
       HINTERNET http_session = WinHttpOpen(L"WinHttpClient", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS,NULL);
       if (http_session == nullptr)
         throw std::runtime_error("WinHttpOpen failed: " + std::to_string(GetLastError()));
 
-      auto http_connection = HttpOrHttps(http_session, req.url, https);
+      auto http_connection = HttpOrHttps(http_session, hostname, https);
       if (http_connection.conn == nullptr)
         throw std::runtime_error("HttpOrHttps failed: " + std::to_string(GetLastError()));
 
-      HINTERNET http_request_handle = WinHttpOpenRequest(http_connection.conn, StringToWstring(MethodToString(req.method)).c_str(), nullptr, nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, http_connection.https ? WINHTTP_FLAG_SECURE : NULL);
+      HINTERNET http_request_handle = WinHttpOpenRequest(http_connection.conn, StringToWstring(MethodToString(req.method)).c_str(), StringToWstring(path).c_str(), nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, http_connection.https ? WINHTTP_FLAG_SECURE : NULL);
       if (http_request_handle == nullptr)
         throw std::runtime_error("WinHttpOpenRequest failed: " + std::to_string(GetLastError()));
 
@@ -171,6 +173,19 @@ namespace winhttp {
 
     inline static std::string CleanUrl(const std::string& url) {
       return std::regex_replace(url, std::regex(R"(https://|http://)"), "");;
+    }
+
+    struct Url {
+      std::string front;
+      std::string back;
+    };
+
+    // split url
+    static inline Url SplitUrl(const std::string& url) {
+      if (auto pos = url.find('/'); pos != std::string::npos)
+        return {url.substr(0, pos), url.substr(pos)};
+
+      return {url, "/"};
     }
 
     inline static const char* MethodToString(Method method) {
