@@ -7,7 +7,7 @@
 #include <functional>
 #include <type_traits>
 #include <list>
-#include <vector>
+#include <stdexcept>
 
 // https://stackoverflow.com/a/51915825
 template <typename T, typename = std::void_t<>>
@@ -17,7 +17,7 @@ struct is_std_hashable<T, std::void_t<decltype(std::declval<std::hash<T>>()(std:
 template <typename T>
 constexpr bool is_std_hashable_v = is_std_hashable<T>::value;
 
-template<typename key_t, typename val_t, std::size_t initial_bucket_count = 7, std::size_t max_bucket_count = 1152921504606846975>
+template<typename key_t, typename val_t, std::size_t initial_bucket_count = 9, std::size_t max_bucket_count = 1152921504606846975>
 class HashMap {
   static_assert(is_std_hashable_v<key_t>, "key_t must support std::hash");
   static_assert(initial_bucket_count > 0, "bucket_count must be greater then 0");
@@ -32,7 +32,11 @@ public:
 
 public:
   HashMap() {
-    InitBuckets(buckets_, initial_bucket_count);
+    buckets_ = InitBuckets(initial_bucket_count);
+  }
+
+  ~HashMap() {
+    delete[] buckets_;
   }
 
   /*
@@ -53,9 +57,9 @@ public:
   }
 
   kv_ref_t Insert(const key_t& key, val_t val) {
-    bucket_ref_t bucket = KeyToBucket(key);
+    bucket_ptr_t bucket = KeyToBucket(key);
 
-    for (auto&& kv : bucket) {
+    for (auto&& kv : *bucket) {
       if (kv.key == key) {
         kv.value = val;
 
@@ -65,20 +69,20 @@ public:
     }
 
     element_count_ += 1;
-    kv_ref_t new_kv = bucket.emplace_back(kv_t{key, val});
+    kv_ref_t new_kv = bucket->emplace_back(kv_t{key, val});
 
-    if (element_count_ / buckets_.size() > 1)
+    if (element_count_ / bucket_count_ > 1)
       Resize();
 
     return new_kv;
   }
 
   void Erase(const key_t& key) {
-    bucket_ref_t bucket = KeyToBucket(key);
+    bucket_ptr_t bucket = KeyToBucket(key);
 
-    for (auto it = bucket.begin(); it != bucket.end(); ++it) {
+    for (auto it = bucket->begin(); it != bucket->end(); ++it) {
       if (it->key == key) {
-        bucket.erase(it);
+        bucket->erase(it);
         element_count_ -= 1;
         return;
       }
@@ -86,7 +90,7 @@ public:
   }
 
   kv_ref_t At(const key_t& key) {
-    bucket_ref_t bucket = KeyToBucket(key);
+    bucket_ptr_t bucket = KeyToBucket(key);
 
     for (auto&& kv : bucket) {
       if (kv.key == key)
@@ -98,7 +102,7 @@ public:
 
   // should return kv
   kv_ref_t operator[](const key_t& key) {
-    bucket_ref_t bucket = KeyToBucket(key);
+    bucket_ptr_t bucket = KeyToBucket(key);
 
     for (auto&& kv : bucket) {
       if (kv.first == key)
@@ -118,7 +122,7 @@ public:
   }
 
   bool Contains(const key_t& key) {
-    bucket_ref_t bucket = KeyToBucket(key);
+    bucket_ptr_t bucket = KeyToBucket(key);
 
     for (auto&& kv : bucket) {
       if (kv.first == key)
@@ -131,12 +135,11 @@ public:
 private:
   using bucket_t = std::list<kv_t>;
   using bucket_ref_t = bucket_t&;
+  using bucket_ptr_t = bucket_t*;
 
   std::size_t element_count_ = 0;
-  std::vector<bucket_t> buckets_;
-
-  inline const static std::size_t fnv_offset_base = 14695981039346656037ULL;
-  inline const static std::size_t fnv_prime = 1099511628211ULL;
+  std::size_t bucket_count_ = initial_bucket_count;
+  bucket_ptr_t buckets_;
 
 private:
   inline std::size_t Hash(const key_t& src) {
@@ -146,15 +149,15 @@ private:
   }
 
   inline std::size_t HashToIndex(const std::size_t& hash) {
-    return (hash % buckets_.size());
+    return (hash % bucket_count_);
   }
 
   inline std::size_t KeyToIdx(const key_t& key) {
     return HashToIndex(Hash(key));
   }
 
-  inline bucket_ref_t KeyToBucket(const key_t& key) {
-    return buckets_[KeyToIdx(key)];
+  inline bucket_ptr_t KeyToBucket(const key_t& key) {
+    return &buckets_[KeyToIdx(key)];
   }
 
   inline bool IsPrime(std::size_t n) {
@@ -182,27 +185,30 @@ private:
     return n;
   }
 
-  inline void InitBuckets(std::vector<bucket_t>& bucket, std::size_t n) {
-    bucket.resize(n);
-    for (int i = 0; i < n; ++i)
-      bucket[i] = bucket_t();
+  inline bucket_ptr_t InitBuckets(std::size_t n) {
+    auto new_bucket = new bucket_t[n];
+    for (int i = 0; i < n; i++)
+      new_bucket[i] = bucket_t{};
+
+    return new_bucket;
   }
 
   inline void Resize() {
-    if (buckets_.size() >= max_bucket_count)
+    if (bucket_count_ >= max_bucket_count)
       return;
 
-    std::size_t new_size = NextPrime(buckets_.size() * 2);
-    std::vector<bucket_t> new_buckets;
-    InitBuckets(new_buckets, new_size);
+    std::size_t new_size = NextPrime(bucket_count_ * 2);
+    bucket_ptr_t new_buckets = InitBuckets(new_size);
 
-    for (bucket_ref_t bucket : buckets_) {
-      for (kv_ref_t kv : bucket) {
-        new_buckets[Hash(kv.key) % new_buckets.size()].emplace_back(kv);
+    for (int i = 0; i < bucket_count_; i++) {
+      for (kv_ref_t kv : buckets_[i]) {
+        new_buckets[Hash(kv.key) % new_size].emplace_back(kv);
       }
     }
 
+    delete[] buckets_;
     buckets_ = new_buckets;
+    bucket_count_ = new_size;
   }
 };
 
