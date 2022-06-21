@@ -1,65 +1,61 @@
 //
-// Created by X-ray on 10/15/2021.
+// Created by X-ray on 06/21/22.
 //
-
-#pragma once
 
 #ifndef ARRAY_ARRAY_HPP
 #define ARRAY_ARRAY_HPP
 #include <cstdlib>
+#include <stdexcept>
 
-struct ArrayData {
-	void* data_;
-	size_t size_;
-};
-
-class ArrayException {
-public:
-	ArrayException(const char* what) : what_(what)
-	{
-	}
-
-	const char* what() {
-		return what_;
-	}
-private:
-	const char* what_;
-};
-
-template<class T>
+template<typename T>
 class Array {
 public:
-	Array(size_t size) {
-		ArrayData array {
-			malloc(size * sizeof(T)),
-			size
-		};
-		memset(array.data_, 0, size);
-		data_ = array;
-	}
+  explicit Array(std::size_t capacity) {
+    capacity_ = capacity;
+    data_ = new T[capacity];
+  }
 
-	~Array() {
-		free(data_.data_);
-	}
+  ~Array() {
+    delete[] data_;
+  }
 
-	size_t Size() {
-		return data_.size_;
-	}
+  inline T& At(std::size_t idx) const {
+    if (idx < capacity_) {
+      return data_[idx];
+    } else {
+      throw std::out_of_range("call to At() was out of bounds");
+    }
+  }
 
-	void Resize(size_t new_size) {
-		data_.data_ = realloc(data_.data_, new_size * sizeof(T));
-		data_.size_ = new_size;
-	}
+  inline T& operator[](std::size_t idx) const {
+    return At(idx);
+  }
 
-	T& operator[](const size_t index) const {
-		if (index < data_.size_) {
-			return *reinterpret_cast<T*>(reinterpret_cast<void*>((static_cast<char*>(data_.data_) + (index * sizeof(T)))));
-		} else {
-			throw ArrayException("index out of bounds");
-		}
-	}
+  inline T& Front() const {
+    return data_[0];
+  }
+
+  inline T& Back() const {
+    return data_[capacity_ - 1];
+  }
+
+  inline T* Data() const {
+    return data_;
+  }
+
+  [[nodiscard]] inline std::size_t Capacity() const {
+    return capacity_;
+  }
+
+  inline void Fill(const T& val) {
+    for (int i = 0; i < capacity_; i++) {
+      data_[i] = val;
+    }
+  }
 
 private:
-ArrayData data_{};
+  std::size_t capacity_;
+  T* data_;
 };
+
 #endif //ARRAY_ARRAY_HPP
