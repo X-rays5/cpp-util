@@ -1,72 +1,49 @@
 //
-// Created by X-ray on 8/10/2021.
+// Created by X-ray on 11/03/22.
 //
+
 #pragma once
+#ifndef THREAD_POOL_HPP
+#define THREAD_POOL_HPP
+#include <condition_variable>
 #include <queue>
-#include <vector>
-#include <thread>
-#include <functional>
 #include <mutex>
+#include <memory>
+#include <functional>
+#include <thread>
+#include <vector>
+#include <future>
+#include <atomic>
 
-class thread_pool {
-public:
+class ThreadPool {
+  public:
     using job_t = std::function<void()>;
+    using cb_t = std::function<void()>;
 
-    explicit thread_pool(int thread_count) {
-        std::lock_guard lock(mutex_);
-        for (int i = 0; i < thread_count; i++) {
-            threads_.emplace_back([this]{
-                while(this->running_) {
-                    this->run_tick();
-                }
-            });
-        }
-        threads_.shrink_to_fit();
-    }
+    struct Job {
+      job_t job;
+      cb_t cb;
+    };
 
-    ~thread_pool() {
-        {
-            std::lock_guard lock(mutex_);
-            running_ = false;
-        }
-        // give threads time to shutdown
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        std::lock_guard lock(mutex_);
-        for (auto&& thread : threads_) {
-            if (thread.joinable())
-                thread.join();
-        }
-    }
+  public:
+    ThreadPool();
+    explicit ThreadPool(std::size_t thread_count);
+    ~ThreadPool();
 
-    void add_job(job_t job) {
-        try {
-            if (job) {
-                std::lock_guard lock(mutex_);
-                jobs_.emplace(std::move(job));
-            }
-        } catch(...) {
-        }
-    }
+    void AddJob(job_t task, cb_t callback = nullptr);
 
-private:
+    std::size_t GetThreadCount() const;
+  private:
+    std::mutex mtx_;
+    std::atomic<bool> running_ = true;
+    std::queue<Job> tasks_;
     std::vector<std::thread> threads_;
-    std::queue<job_t> jobs_;
-    std::mutex mutex_;
-    bool running_ = true;
-private:
-    void run_tick() {
-        try {
-            job_t job = nullptr;
-            {
-                std::lock_guard lock(mutex_);
-                if (!jobs_.empty()) {
-                    job = jobs_.front();
-                    jobs_.pop();
-                }
-            }
-            if (job) {
-                std::invoke(job);
-            }
-        } catch(...) {}
-    }
-};
+    std::condition_variable job_notify_;
+
+  private:
+    static void WorkerLoop(ThreadPool* pool);
+    void CreateThreads(std::size_t thread_count);
+
+  };
+  inline ThreadPool* kTHREAD_POOL{};
+#endif //THREAD_POOL_HPP
