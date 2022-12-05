@@ -16,8 +16,6 @@ ThreadPool::ThreadPool() {
     } else {
       CreateThreads(thread_count);
     }
-
-    CreateThreads(thread_count);
   }
 
   ThreadPool::~ThreadPool() {
